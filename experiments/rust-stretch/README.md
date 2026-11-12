@@ -4,6 +4,14 @@ An isolated experiment based on upstream `02c7574`, not an enabled player backen
 
 The path is Java FFM -> Rust `cdylib` -> `ssstretch` 0.1.0 -> C++ Signalsmith Stretch. There is no JNI code. This is not a pure Rust implementation of Signalsmith. Rubato alone would not replace pitch-preserving time stretching.
 
+## hybrid prototype
+
+`HybridStretch` selects the existing Kotlin implementation for unity playback and coupled speed/pitch (the resampling-only path). When tempo and pitch are independent, it selects Rust/Signalsmith. If native loading fails, it falls back to Kotlin and exposes the reason. The regular Kotlin path does not initialize the native library. The rest of KittyTune's effects chain is not part of this change.
+
+Selection happens when an analysis/playback segment is created. Parameter updates stay on that engine until it is closed and a new segment is created at a track/seek boundary. This avoids silently throwing away queued audio and changing latency on every slider movement. Seamless engine handoff during playback still needs latency alignment and listening tests before wiring this facade into AudioEngine. This branch remains an isolated POC; the application itself still uses its existing backend.
+
+`HybridChecks` compares ordinary and coupled-speed/pitch output byte-for-byte with the real Kotlin class, and independent tempo/pitch output with the native class. It also runs in a separate JVM with a deliberately missing library to verify fallback. The benchmark includes the selected hybrid path, including pure pitch cases.
+
 ## run
 
 Requires Python 3, a Rust MSVC toolchain and Visual Studio C++ Build Tools on Windows (or the native Rust/C++ toolchains on Linux/macOS), JDK 21 or newer, and Kotlin compiler/stdlib jars. The last argument may point at the `lib` directory of an installed Kotlin compiler or Gradle distribution that includes `K2JVMCompiler`.

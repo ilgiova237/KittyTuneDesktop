@@ -1,6 +1,7 @@
 from pathlib import Path
 import argparse
 import glob
+import hashlib
 import json
 import os
 import platform
@@ -59,11 +60,17 @@ library_name = 'kittytune_stretch_poc.dll' if os.name == 'nt' else ('libkittytun
 command = [java,*preview,'--enable-native-access=ALL-UNNAMED','-Xms256m','-Xmx256m',
            '-Dkittytune.stretch.library='+str(root/'target/release'/library_name),'-cp',classpath,'poc.StretchProbe']
 run(command,'java-checks-'+str(major)+'.log')
+run([*command[:-1],'poc.HybridChecks'], 'hybrid-checks-'+str(major)+'.log')
+missing = [arg if not arg.startswith('-Dkittytune.stretch.library=') else
+           '-Dkittytune.stretch.library='+str(root/'build/not-installed.dll') for arg in command[:-1]]
+run([*missing,'poc.HybridChecks','missing-library'], 'hybrid-fallback-'+str(major)+'.log')
 if args.bench:
     run([*command,'bench'],'benchmark-'+str(major)+'.csv')
 (results/('environment-'+str(major)+'.json')).write_text(json.dumps({
     'java':version,'os':platform.platform(),'machine':platform.machine(),
     'processor':platform.processor(),'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo).decode().strip(),
+    'tested_source_sha256': {str(p.relative_to(repo)):hashlib.sha256(p.read_bytes()).hexdigest() for p in
+        [repo/'src/main/kotlin/com/alananasss/kittytune/audio/TimeStretcher.kt',root/'src/lib.rs',*sorted((root/'java').glob('*.java'))]},
     'note':'Different DSP algorithms. Wall times include copies/conversion/FFM. JVM allocation excludes native allocation.'
 },indent=2),encoding='utf-8')
 print('passed on JDK',major,'-',results)

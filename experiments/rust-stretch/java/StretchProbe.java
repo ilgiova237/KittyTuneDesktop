@@ -78,14 +78,20 @@ public final class StretchProbe {
     }
     private static long allocated() { return MEMORY.getThreadAllocatedBytes(Thread.currentThread().threadId()); }
     private static void benchmark(boolean nativeDsp, float speed, float pitch, boolean sweep, int blocks, boolean print) {
+        benchmark(nativeDsp ? 1 : 0, speed, pitch, sweep, blocks, print);
+    }
+    private static void benchmark(int engine, float speed, float pitch, boolean sweep, int blocks, boolean print) {
         short[] pcm = sine(BLOCK, 440, 0), out = new short[BLOCK * 20 + 2];
-        NativeStretch rust = nativeDsp ? new NativeStretch(RATE, 2, BLOCK) : null;
-        TimeStretcher kotlin = nativeDsp ? null : new TimeStretcher(RATE, 2);
+        NativeStretch rust = engine == 1 ? new NativeStretch(RATE, 2, BLOCK) : null;
+        TimeStretcher kotlin = engine == 0 ? new TimeStretcher(RATE, 2) : null;
+        HybridStretch hybrid = engine == 2 ? new HybridStretch(RATE, 2, BLOCK,
+            sweep ? .75f : speed, sweep ? .8f : pitch) : null;
         long[] times = new long[blocks];
         long count = 0, checksum = 0;
         try {
             for (int i = 0; i < 128; i++) {
                 if (rust != null) rust.process(pcm, BLOCK, out, speed, pitch);
+                else if (hybrid != null) hybrid.process(pcm, BLOCK, out);
                 else { kotlin.setParameters(speed, pitch); kotlin.queue(pcm, pcm.length); while (kotlin.available() > 0) kotlin.drain(out, out.length); }
             }
             long before = allocated(), began = System.nanoTime();
@@ -95,6 +101,11 @@ public final class StretchProbe {
                 long start = System.nanoTime();
                 int n;
                 if (rust != null) n = rust.process(pcm, BLOCK, out, currentSpeed, currentPitch) * 2;
+                else if (hybrid != null) {
+                    hybrid.setParameters(currentSpeed, currentPitch);
+                    n = hybrid.process(pcm, BLOCK, out) * 2;
+                    while (hybrid.available() > 0) n += hybrid.drain(out) * 2;
+                }
                 else {
                     kotlin.setParameters(currentSpeed, currentPitch);
                     kotlin.queue(pcm, pcm.length);
@@ -109,10 +120,10 @@ public final class StretchProbe {
             Arrays.sort(times);
             if (print) System.out.printf(Locale.ROOT,
                 "%s,%s,%.2f,%.2f,%d,%.3f,%.3f,%.3f,%.3f,%d,%d,%d%n",
-                nativeDsp ? "rust-signalsmith-ffm" : "kotlin-wsola", sweep ? "sweep" : "steady", speed, pitch, blocks,
+                engine == 2 ? "hybrid" : engine == 1 ? "rust-signalsmith-ffm" : "kotlin-wsola", sweep ? "sweep" : "steady", speed, pitch, blocks,
                 elapsed / 1e6, times[blocks / 2] / 1e3, times[(int) (blocks * .99)] / 1e3,
                 times[blocks - 1] / 1e3, bytes, count, checksum);
-        } finally { if (rust != null) rust.close(); }
+        } finally { if (rust != null) rust.close(); if (hybrid != null) hybrid.close(); }
     }
     public static void main(String[] args) throws Exception {
         if (args.length == 0 || !args[0].equals("bench")) {
@@ -121,12 +132,14 @@ public final class StretchProbe {
             System.out.println("audio and lifecycle checks passed");
         } else {
             System.out.println("engine,mode,speed,pitch,blocks,wall_ms,p50_us,p99_us,max_us,java_alloc_bytes,output_samples,checksum");
-            for (int round = 0; round < 3; round++) for (float[] p : new float[][]{{1f,1f},{.75f,1f},{1.5f,1f},{1.25f,1.25f}}) {
+            for (int round = 0; round < 3; round++) for (float[] p : new float[][]{{1f,1f},{.75f,1f},{1.5f,1f},{1f,.75f},{1f,1.5f},{1.25f,1.25f}}) {
                 benchmark(round % 2 == 0, p[0], p[1], false, 256, true);
                 benchmark(round % 2 != 0, p[0], p[1], false, 256, true);
+                benchmark(2, p[0], p[1], false, 256, true);
             }
             benchmark(false, 1, 1, true, 256, true);
             benchmark(true, 1, 1, true, 256, true);
+            benchmark(2, 1, 1, true, 256, true);
         }
     }
 }

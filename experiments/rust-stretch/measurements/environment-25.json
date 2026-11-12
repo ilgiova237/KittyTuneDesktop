@@ -3,6 +3,14 @@
   "os": "Windows-10-10.0.19045-SP0",
   "machine": "AMD64",
   "processor": "Intel64 Family 6 Model 94 Stepping 3, GenuineIntel",
-  "source_commit": "02c7574d55b68125f3328cb88111d000d3d078ff",
-  "note": "Different DSP algorithms. Wall times include copies/conversion/FFM. JVM allocation excludes native allocation."
+  "source_commit": "3edee6884665f5b83b702841f3f45f686d4a652c",
+  "note": "Different DSP algorithms. Wall times include copies/conversion/FFM. JVM allocation excludes native allocation.",
+  "tested_source_sha256": {
+    "src\\main\\kotlin\\com\\alananasss\\kittytune\\audio\\TimeStretcher.kt": "5004bf80eb9052c565302585c95d734b52410dc5a4a01cdc0ac5dd6f58062a28",
+    "experiments\\rust-stretch\\src\\lib.rs": "289aa21c6ab392cd582ce4e83057918d4f94b390d84f69a2d932dd1a718cdb49",
+    "experiments\\rust-stretch\\java\\HybridChecks.java": "2d5e44391a798b47948595bdd210dd19eae95446bd55b8a65d95868b25b23ffe",
+    "experiments\\rust-stretch\\java\\HybridStretch.java": "6a5e4a8a73b1d934f79933064fa6aaf117b8cc564feddc16571761c55cc0bf83",
+    "experiments\\rust-stretch\\java\\NativeStretch.java": "aaee2b3343e1b39d08d99ecb8a8217edebb4eace52c96e361f966e5f4d841ef2",
+    "experiments\\rust-stretch\\java\\StretchProbe.java": "437d8744d6c4ec2a9e0e30c82f366d39d19d9a94f98c2c0c274db7a0a82b5a77"
+  }
 }

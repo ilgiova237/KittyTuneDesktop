@@ -1,20 +1,24 @@
-# windows x64 measurements
+# hybrid routing: windows x64 measurements
 
-Synthetic stereo PCM, 48 kHz, 256 x 1024-frame blocks per run. Three steady-state rounds; one sweep. Values below are the median total wall time in milliseconds, including bridge copies. Native and Kotlin algorithms differ.
+Synthetic stereo PCM, 48 kHz, 256 x 1024-frame blocks. Three rounds per fixed setting; one sweep. Median total wall time in milliseconds, including copying and dispatch. Algorithms and latency differ. Individual timings are noisy; raw block timings and allocation are retained.
 
-| JDK | case (speed, pitch) | Kotlin ms | Rust/Signalsmith/FFM ms |
-| --- | --- | ---: | ---: |
-| 21 | steady (1.00, 1.00) | 7.07 | 121.25 |
-| 21 | steady (0.75, 1.00) | 278.89 | 183.66 |
-| 21 | steady (1.50, 1.00) | 142.95 | 93.24 |
-| 21 | steady (1.25, 1.25) | 27.84 | 122.04 |
-| 21 | sweep (1.00, 1.00) | 373.19 | 127.53 |
-| 25 | steady (1.00, 1.00) | 8.14 | 157.38 |
-| 25 | steady (0.75, 1.00) | 407.22 | 244.33 |
-| 25 | steady (1.50, 1.00) | 186.49 | 129.01 |
-| 25 | steady (1.25, 1.25) | 39.52 | 168.56 |
-| 25 | sweep (1.00, 1.00) | 457.22 | 169.29 |
+| JDK | case (speed, pitch) | Kotlin ms | Native ms | Hybrid ms |
+| --- | --- | ---: | ---: | ---: |
+| 21 | steady (1.00, 1.00) | 11.97 | 185.85 | 9.83 |
+| 21 | steady (0.75, 1.00) | 361.14 | 245.92 | 279.63 |
+| 21 | steady (1.50, 1.00) | 213.09 | 154.59 | 147.69 |
+| 21 | steady (1.00, 0.75) | 276.02 | 189.47 | 194.18 |
+| 21 | steady (1.00, 1.50) | 538.58 | 175.46 | 178.68 |
+| 21 | steady (1.25, 1.25) | 34.64 | 150.41 | 32.22 |
+| 21 | sweep (1.00, 1.00) | 512.85 | 223.21 | 214.31 |
+| 25 | steady (1.00, 1.00) | 6.98 | 201.84 | 7.16 |
+| 25 | steady (0.75, 1.00) | 444.63 | 247.92 | 290.02 |
+| 25 | steady (1.50, 1.00) | 275.05 | 152.72 | 148.86 |
+| 25 | steady (1.00, 0.75) | 275.75 | 182.96 | 178.79 |
+| 25 | steady (1.00, 1.50) | 504.43 | 186.81 | 189.62 |
+| 25 | steady (1.25, 1.25) | 35.87 | 164.59 | 33.00 |
+| 25 | sweep (1.00, 1.00) | 498.52 | 228.77 | 168.12 |
 
-The Kotlin unity and coupled speed/pitch paths are faster in this run. Native tempo-only changes and the sweep are faster. Most warmed steady-state runs measured zero Java-thread allocation for both paths; check raw CSV for outliers and block timing. Native allocation and physical playback were not measured.
+Routing checks passed on JDK 21 and 25: regular and coupled speed/pitch output matches Kotlin byte-for-byte; independent tempo/pitch output matches direct native output. Separate missing-library JVM checks confirm fallback to Kotlin. Native audio/lifecycle checks also passed on both JDKs.
 
-Validation: 3 Rust tests passed. Audio and lifecycle checks passed on JDK 21 and 25. At 0.75x tempo / 1x pitch: 128000 output frames from 96000 input frames, settled channels at 440/660 Hz. At 1x tempo / 1.5x pitch: 96000 output frames, channels at 660/990 Hz. No whole-app performance claim follows from these results.
+The hybrid uses Kotlin for unity and coupled speed/pitch, Rust/Signalsmith for independent tempo/pitch. The sweep starts with independent parameters, so its hybrid instance stays native. Selection is per segment, not a seamless live backend switch. These measurements do not establish whole-player CPU usage, native allocation, absence of GC stutters, or listening quality.
