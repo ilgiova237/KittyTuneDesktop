@@ -1,0 +1,8 @@
+{
+  "java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\r\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\r\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)\r\n",
+  "os": "Windows-10-10.0.19045-SP0",
+  "machine": "AMD64",
+  "processor": "Intel64 Family 6 Model 94 Stepping 3, GenuineIntel",
+  "source_commit": "02c7574d55b68125f3328cb88111d000d3d078ff",
+  "note": "Different DSP algorithms. Wall times include copies/conversion/FFM. JVM allocation excludes native allocation."
+}
